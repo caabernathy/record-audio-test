@@ -7,6 +7,8 @@ import Mic from '@material-ui/icons/Mic';
 import Pause from '@material-ui/icons/Pause';
 import Stop from '@material-ui/icons/Stop';
 
+import WaveSurfer from 'wavesurfer.js';
+
 import useStyles from './styles';
 import { useState } from 'react';
 
@@ -16,18 +18,19 @@ export default function App() {
   const classes = useStyles();
   const [duration, setDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
-  const [mimeType, setMimeType] = useState('');
-  const [blobs, setBlobs] = useState([]);
+
   const canvasRef: any = useRef(null);
-
   const mediaRecorder = useRef<MediaRecorder | null>(null);
+  const stream = useRef<MediaStream | null>(null);
+  const wavesurfer = useRef<WaveSurfer | null>(null);
+  const blobs = useRef<Blob[]>([]);
 
-  const visualize = (stream: any) => {
+  const visualize = () => {
     const audioCtx = new AudioContext();
     const canvas = canvasRef.current;
     const canvasCtx = canvasRef.current.getContext('2d');
 
-    const source = audioCtx.createMediaStreamSource(stream);
+    const source = audioCtx.createMediaStreamSource(stream.current);
 
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
@@ -35,13 +38,6 @@ export default function App() {
     const dataArray = new Uint8Array(bufferLength);
 
     source.connect(analyser);
-
-    const showAudioPreview = () => {
-      if (!blobs.length) return;
-      const blob = new Blob(blobs, { type: mimeType });
-      // const url = URL.createObjectURL(blob);
-      // wavesurfer.loadBlob(blob);
-    };
 
     const draw = () => {
       const WIDTH = canvas.width;
@@ -79,33 +75,59 @@ export default function App() {
     draw();
   };
 
+  const showRecordedAudio = () => {
+    if (!blobs.current.length) return;
+    const mimeType = mediaRecorder.current
+      ? mediaRecorder.current.mimeType
+      : '';
+    const blob = new Blob(blobs.current, {
+      type: mimeType,
+    });
+    // const url = URL.createObjectURL(blob);
+
+    wavesurfer.current = WaveSurfer.create({
+      container: '#waveform',
+      waveColor: '#CC0000',
+      progressColor: '#666666',
+    });
+    wavesurfer.current.on('ready', function () {
+      if (wavesurfer.current) {
+        wavesurfer.current.play();
+      }
+    });
+    // const url = URL.createObjectURL(blob);
+    wavesurfer.current.loadBlob(blob);
+  };
+
   const startRecording = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({
+    setIsRecording(true);
+    const audioStream = await navigator.mediaDevices.getUserMedia({
       audio: true,
       video: false,
     });
-    // if (!wavesurfer) {
-    //   wavesurfer = WaveSurfer.create({
-    //     container: "#waveform",
-    //     scrollParent: true,
-    //     waveColor: "#CC0000",
-    //     progressColor: "#666666"
-    //   });
-    //   wavesurfer.on("ready", function () {
-    //     wavesurfer.play();
-    //   });
-    // }
-    const mediaRecorder = new MediaRecorder(stream);
-    mediaRecorder.ondataavailable = (event: any) => {
+    stream.current = audioStream;
+    mediaRecorder.current = new MediaRecorder(audioStream);
+    mediaRecorder.current.ondataavailable = (event: any) => {
       // Let's append blobs for now, we could also upload them to the network.
-      if (event.data) blobs.push(event.data);
+      if (event.data) blobs.current.push(event.data);
     };
-    mediaRecorder.onstop = showAudioPreview;
+    mediaRecorder.current.onstop = showRecordedAudio;
     // Let's receive 1 second blobs
-    mediaRecorder.start(1000);
+    mediaRecorder.current.start(1000);
 
     // Start the visualizer
-    visualize(stream);
+    visualize();
+  };
+
+  const stopRecording = () => {
+    setIsRecording(false);
+    // Let's stop capture and recording
+    if (mediaRecorder.current) {
+      mediaRecorder.current.stop();
+      if (stream.current) {
+        stream.current.getTracks().forEach((track) => track.stop());
+      }
+    }
   };
 
   return (
@@ -119,14 +141,19 @@ export default function App() {
         </Box>
         <Text className={classes.ctaText}>TRY RECORDING ONE NOW!</Text>
         <Box>
-          <canvas className={classes.audioPreview} ref={canvasRef}></canvas>
+          {isRecording ? (
+            <canvas className={classes.audioPreview} ref={canvasRef}></canvas>
+          ) : (
+            <div id="abc"></div>
+          )}
+          <div id="waveform"></div>
         </Box>
         <Text className={classes.duration}>
           {convertSecondsToHoursMinutesSeconds(duration)}
         </Text>
         {isRecording ? (
           <Box className={classes.pauseStopContainer}>
-            <IconButton className={classes.stopButton} onClick={() => {}}>
+            <IconButton className={classes.stopButton} onClick={stopRecording}>
               <Stop className={classes.recordIcon} />
             </IconButton>
             <IconButton className={classes.pauseButton} onClick={() => {}}>
@@ -134,7 +161,7 @@ export default function App() {
             </IconButton>
           </Box>
         ) : (
-          <IconButton className={classes.recordButton} onClick={() => {}}>
+          <IconButton className={classes.recordButton} onClick={startRecording}>
             <Mic className={classes.recordIcon} />
           </IconButton>
         )}
