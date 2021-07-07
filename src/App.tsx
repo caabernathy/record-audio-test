@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import Text from '@material-ui/core/Typography';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
@@ -21,10 +21,24 @@ export default function App() {
   const [showControls, setShowControls] = useState(false);
 
   const canvasRef: any = useRef(null);
+  const waveformRef: any = useRef(null);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const wavesurfer = useRef<WaveSurfer | null>(null);
   const blobs = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    wavesurfer.current = WaveSurfer.create({
+      container: waveformRef.current,
+      scrollParent: true,
+      waveColor: '#CC0000',
+      progressColor: '#666666',
+    });
+
+    return () => {
+      if (wavesurfer.current) wavesurfer.current.destroy();
+    };
+  }, []);
 
   const visualize = () => {
     if (!stream.current) return;
@@ -88,20 +102,17 @@ export default function App() {
     });
     // const url = URL.createObjectURL(blob);
 
-    const ws = WaveSurfer.create({
-      container: '#waveform',
-      waveColor: '#CC0000',
-      progressColor: '#666666',
-    });
-    wavesurfer.current = ws;
-    ws.on('ready', function () {
-      if (wavesurfer.current) {
-        // wavesurfer.current.play();
-        setShowControls(true);
-      }
-    });
+    // Show recorded audio
+    if (wavesurfer.current) {
+      wavesurfer.current.on('ready', function () {
+        if (wavesurfer.current) {
+          // wavesurfer.current.play();
+          setShowControls(true);
+        }
+      });
+      wavesurfer.current.loadBlob(blob);
+    }
     // const url = URL.createObjectURL(blob);
-    ws.loadBlob(blob);
   };
 
   const startRecording = async () => {
@@ -156,8 +167,9 @@ export default function App() {
           {isRecording ? (
             <canvas className={classes.audioPreview} ref={canvasRef}></canvas>
           ) : (
-            <div id="waveform"></div>
+            <div id="abc"></div>
           )}
+          <div ref={waveformRef}></div>
         </Box>
         <Text className={classes.duration}>
           {convertSecondsToHoursMinutesSeconds(duration)}
