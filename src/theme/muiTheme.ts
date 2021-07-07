@@ -1,5 +1,5 @@
 import React from 'react';
-import { createMuiTheme, responsiveFontSizes } from '@material-ui/core/styles';
+import { createTheme, responsiveFontSizes } from '@material-ui/core/styles';
 export const mainBlue = '#46AFB7';
 export const pink = '#F7957E';
 export const dark = '#393E46';
@@ -49,7 +49,7 @@ declare module '@material-ui/core/styles/createPalette' {
   }
 }
 
-let theme = createMuiTheme({
+let theme = createTheme({
   palette: {
     primary: {
       main: mainBlue,

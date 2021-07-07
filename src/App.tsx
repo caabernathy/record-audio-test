@@ -26,6 +26,9 @@ export default function App() {
   const blobs = useRef<Blob[]>([]);
 
   const visualize = () => {
+    if (!stream.current) {
+      return;
+    }
     const audioCtx = new AudioContext();
     const canvas = canvasRef.current;
     const canvasCtx = canvasRef.current.getContext('2d');
@@ -144,9 +147,8 @@ export default function App() {
           {isRecording ? (
             <canvas className={classes.audioPreview} ref={canvasRef}></canvas>
           ) : (
-            <div id="abc"></div>
+            <div id="waveform"></div>
           )}
-          <div id="waveform"></div>
         </Box>
         <Text className={classes.duration}>
           {convertSecondsToHoursMinutesSeconds(duration)}
