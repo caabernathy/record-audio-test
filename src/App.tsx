@@ -18,6 +18,7 @@ export default function App() {
   const classes = useStyles();
   const [duration, setDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  const [showControls, setShowControls] = useState(false);
 
   const canvasRef: any = useRef(null);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
@@ -26,9 +27,8 @@ export default function App() {
   const blobs = useRef<Blob[]>([]);
 
   const visualize = () => {
-    if (!stream.current) {
-      return;
-    }
+    if (!stream.current) return;
+
     const audioCtx = new AudioContext();
     const canvas = canvasRef.current;
     const canvasCtx = canvasRef.current.getContext('2d');
@@ -88,22 +88,25 @@ export default function App() {
     });
     // const url = URL.createObjectURL(blob);
 
-    wavesurfer.current = WaveSurfer.create({
+    const ws = WaveSurfer.create({
       container: '#waveform',
       waveColor: '#CC0000',
       progressColor: '#666666',
     });
-    wavesurfer.current.on('ready', function () {
+    wavesurfer.current = ws;
+    ws.on('ready', function () {
       if (wavesurfer.current) {
-        wavesurfer.current.play();
+        // wavesurfer.current.play();
+        setShowControls(true);
       }
     });
     // const url = URL.createObjectURL(blob);
-    wavesurfer.current.loadBlob(blob);
+    ws.loadBlob(blob);
   };
 
   const startRecording = async () => {
     setIsRecording(true);
+    setShowControls(false);
     const audioStream = await navigator.mediaDevices.getUserMedia({
       audio: true,
       video: false,
@@ -120,6 +123,12 @@ export default function App() {
 
     // Start the visualizer
     visualize();
+  };
+
+  const playRecording = () => {
+    if (wavesurfer.current) {
+      wavesurfer.current.play();
+    }
   };
 
   const stopRecording = () => {
@@ -167,17 +176,23 @@ export default function App() {
             <Mic className={classes.recordIcon} />
           </IconButton>
         )}
-        <Box className={classes.actions}>
-          <Button variant="contained" className={classes.listenButton}>
-            Listen
-          </Button>
-          <Button variant="contained" color="primary">
-            Send
-          </Button>
-          <Button variant="contained" className={classes.deleteButton}>
-            Delete
-          </Button>
-        </Box>
+        {showControls && (
+          <Box className={classes.actions}>
+            <Button
+              variant="contained"
+              className={classes.listenButton}
+              onClick={playRecording}
+            >
+              Listen
+            </Button>
+            <Button variant="contained" color="primary">
+              Send
+            </Button>
+            <Button variant="contained" className={classes.deleteButton}>
+              Delete
+            </Button>
+          </Box>
+        )}
       </Box>
     </>
   );
