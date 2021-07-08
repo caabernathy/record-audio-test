@@ -17,6 +17,8 @@ export default function App() {
   const classes = useStyles();
   const [duration, setDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  const [isPausedRecording, setIsPausedRecording] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [showControls, setShowControls] = useState(false);
 
   const canvasRef: any = useRef(null);
@@ -24,6 +26,7 @@ export default function App() {
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const wavesurfer = useRef<WaveSurfer | null>(null);
+  const playerRef = useRef<HTMLAudioElement>(null);
   const blobs = useRef<Blob[]>([]);
 
   useEffect(() => {
@@ -47,6 +50,18 @@ export default function App() {
       if (wavesurfer.current) wavesurfer.current.destroy();
     };
   }, []);
+
+  useEffect(() => {
+    let interval: any = null;
+    if (isRecording && !isPausedRecording) {
+      interval = setInterval(() => {
+        setDuration((duration) => duration + 1);
+      }, 1000);
+    } else if (!isRecording && duration !== 0) {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording, isPausedRecording, duration]);
 
   const visualize = () => {
     if (!stream.current) return;
@@ -108,17 +123,27 @@ export default function App() {
     const blob = new Blob(blobs.current, {
       type: mimeType,
     });
-    // const url = URL.createObjectURL(blob);
 
     // Show recorded audio
     if (wavesurfer.current) {
       wavesurfer.current.loadBlob(blob);
     }
+    if (playerRef.current) {
+      const url = URL.createObjectURL(blob);
+      playerRef.current.src = url;
+    }
   };
 
   const startRecording = async () => {
     setIsRecording(true);
+    setIsPausedRecording(false);
     setShowControls(false);
+    setIsPlaying(false);
+    setDuration(0);
+    blobs.current.length = 0;
+    if (wavesurfer.current) {
+      wavesurfer.current.empty();
+    }
     const audioStream = await navigator.mediaDevices.getUserMedia({
       audio: true,
       video: false,
@@ -138,13 +163,33 @@ export default function App() {
   };
 
   const playRecording = () => {
-    if (wavesurfer.current) {
-      wavesurfer.current.play();
+    if (playerRef.current && wavesurfer.current) {
+      wavesurfer.current.playPause();
+      if (isPlaying) {
+        playerRef.current.pause();
+      } else {
+        playerRef.current.play();
+      }
+      wavesurfer.current.setMute(true);
+      setIsPlaying((isPlaying) => !isPlaying);
     }
+  };
+
+  const pauseRecording = () => {
+    if (!isRecording) return;
+    if (mediaRecorder.current) {
+      if (isPausedRecording) {
+        mediaRecorder.current.resume();
+      } else {
+        mediaRecorder.current.pause();
+      }
+    }
+    setIsPausedRecording((isPausedRecording) => !isPausedRecording);
   };
 
   const stopRecording = () => {
     setIsRecording(false);
+    setIsPausedRecording(false);
     // Let's stop capture and recording
     if (mediaRecorder.current) {
       mediaRecorder.current.stop();
@@ -181,6 +226,7 @@ export default function App() {
             ref={waveformRef}
           ></div>
         </Box>
+        <audio className={classes.player} ref={playerRef} controls></audio>
         <Text className={classes.duration}>
           {convertSecondsToHoursMinutesSeconds(duration)}
         </Text>
@@ -189,7 +235,10 @@ export default function App() {
             <IconButton className={classes.stopButton} onClick={stopRecording}>
               <Stop className={classes.recordIcon} />
             </IconButton>
-            <IconButton className={classes.pauseButton} onClick={() => {}}>
+            <IconButton
+              className={classes.pauseButton}
+              onClick={pauseRecording}
+            >
               <Pause className={classes.pauseIcon} />
             </IconButton>
           </Box>
@@ -205,7 +254,7 @@ export default function App() {
               className={classes.listenButton}
               onClick={playRecording}
             >
-              Listen
+              {isPlaying ? 'Pause' : 'Play'}
             </Button>
             <Button variant="contained" color="primary">
               Send

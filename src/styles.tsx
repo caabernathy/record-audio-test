@@ -16,14 +16,14 @@ export default makeStyles(
     titleContainer: {
       display: 'flex',
       alignItems: 'center',
-      paddingTop: 50,
+      paddingTop: 20,
     },
     titleText: {
       paddingLeft: 10,
     },
     ctaText: {
       textTransform: 'uppercase',
-      paddingBottom: 100,
+      paddingBottom: 40,
     },
     duration: {
       paddingBottom: 20,
@@ -101,6 +101,9 @@ export default makeStyles(
     audioPreview: {},
     waveform: {
       width: '100%',
+    },
+    player: {
+      display: 'none',
     },
     visible: {
       display: 'block',
