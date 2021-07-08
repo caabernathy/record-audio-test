@@ -1,12 +1,13 @@
 import { makeStyles } from '@material-ui/core/styles';
 
 export default makeStyles(
-  ({ pink, error, greyLight, greenGrey, darkGreen }: any) => ({
+  ({ breakpoints, pink, error, greyLight, greenGrey, darkGreen }: any) => ({
     root: {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       gap: 30,
+      maxWidth: 1720,
     },
     '@keyframes pulse': {
       from: { opacity: 0.2 },
@@ -88,8 +89,24 @@ export default makeStyles(
       background: greyLight,
       color: 'white',
     },
-    audioPreview: {
+    audioContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      width: '70%',
+      [breakpoints.down('md')]: {
+        width: '90%',
+      },
+    },
+    audioPreview: {},
+    waveform: {
       width: '100%',
+    },
+    visible: {
+      display: 'block',
+    },
+    hidden: {
+      display: 'none',
     },
   }),
   { name: 'Record' },

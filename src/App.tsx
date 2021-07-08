@@ -1,4 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import WaveSurfer from 'wavesurfer.js';
+import cx from 'classnames';
+
 import Text from '@material-ui/core/Typography';
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
@@ -7,11 +10,7 @@ import Mic from '@material-ui/icons/Mic';
 import Pause from '@material-ui/icons/Pause';
 import Stop from '@material-ui/icons/Stop';
 
-import WaveSurfer from 'wavesurfer.js';
-
 import useStyles from './styles';
-import { useState } from 'react';
-
 import { convertSecondsToHoursMinutesSeconds } from './utils/helpers';
 
 export default function App() {
@@ -29,11 +28,20 @@ export default function App() {
 
   useEffect(() => {
     wavesurfer.current = WaveSurfer.create({
-      container: waveformRef.current,
+      container: '#waveform', // waveformRef.current,
       scrollParent: true,
       waveColor: '#CC0000',
       progressColor: '#666666',
     });
+    wavesurfer.current.on('ready', function () {
+      if (wavesurfer.current) {
+        // wavesurfer.current.play();
+        setShowControls(true);
+      }
+    });
+    // wavesurfer.current.load(
+    //   'https://ia902606.us.archive.org/35/items/shortpoetry_047_librivox/song_cjrg_teasdale_64kb.mp3',
+    // );
 
     return () => {
       if (wavesurfer.current) wavesurfer.current.destroy();
@@ -104,15 +112,8 @@ export default function App() {
 
     // Show recorded audio
     if (wavesurfer.current) {
-      wavesurfer.current.on('ready', function () {
-        if (wavesurfer.current) {
-          // wavesurfer.current.play();
-          setShowControls(true);
-        }
-      });
       wavesurfer.current.loadBlob(blob);
     }
-    // const url = URL.createObjectURL(blob);
   };
 
   const startRecording = async () => {
@@ -163,13 +164,22 @@ export default function App() {
           </Text>
         </Box>
         <Text className={classes.ctaText}>TRY RECORDING ONE NOW!</Text>
-        <Box>
-          {isRecording ? (
-            <canvas className={classes.audioPreview} ref={canvasRef}></canvas>
-          ) : (
-            <div id="abc"></div>
-          )}
-          <div ref={waveformRef}></div>
+        <Box className={classes.audioContainer}>
+          <canvas
+            className={cx(classes.audioPreview, {
+              [classes.visible]: isRecording,
+              [classes.hidden]: !isRecording,
+            })}
+            ref={canvasRef}
+          ></canvas>
+          <div
+            className={cx(classes.waveform, {
+              [classes.visible]: !isRecording,
+              [classes.hidden]: isRecording,
+            })}
+            id="waveform"
+            ref={waveformRef}
+          ></div>
         </Box>
         <Text className={classes.duration}>
           {convertSecondsToHoursMinutesSeconds(duration)}
