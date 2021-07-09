@@ -38,8 +38,13 @@ export default function App() {
     });
     wavesurfer.current.on('ready', function () {
       if (wavesurfer.current) {
-        // wavesurfer.current.play();
         setShowControls(true);
+      }
+    });
+    wavesurfer.current.on('finish', function () {
+      if (wavesurfer.current && wavesurfer.current.isPlaying) {
+        // wavesurfer.current.seekTo(0);
+        setIsPlaying(false);
       }
     });
     // wavesurfer.current.load(
